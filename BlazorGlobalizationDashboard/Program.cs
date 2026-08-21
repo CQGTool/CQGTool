@@ -13,6 +13,12 @@ builder.Services.AddRazorComponents()
 // Add localization with Resources folder
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+
+
+
+
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
 // Configure supported cultures
 var supportedCultures = new[]
 {
