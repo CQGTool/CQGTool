@@ -8,4 +8,8 @@
 		<RootNamespace>BlazorGlobalizationDashboard</RootNamespace>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Folder Include=".github\workflows\" />
+	</ItemGroup>
+
 </Project>
