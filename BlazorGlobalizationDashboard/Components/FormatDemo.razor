@@ -1,0 +1,60 @@
+﻿@inject Services.CultureService CultureService
+
+<div class="format-demo">
+    <h4>📊 Formatting Examples</h4>
+
+    <div class="demo-grid">
+        <div class="demo-item">
+            <div class="demo-label">Currency</div>
+            <div class="demo-value">@CultureService.FormatCurrency(1234.56m)</div>
+        </div>
+        <div class="demo-item">
+            <div class="demo-label">Number</div>
+            <div class="demo-value">@CultureService.FormatNumber(9876543.21)</div>
+        </div>
+        <div class="demo-item">
+            <div class="demo-label">Date</div>
+            <div class="demo-value">@CultureService.FormatDate(DateTime.Now)</div>
+        </div>
+        <div class="demo-item">
+            <div class="demo-label">Date/Time</div>
+            <div class="demo-value">@CultureService.FormatDateTime(DateTime.Now)</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .format-demo {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+
+    .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .demo-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 4px solid #007bff;
+    }
+
+    .demo-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+
+    .demo-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #212529;
+        margin-top: 0.5rem;
+    }
+</style>

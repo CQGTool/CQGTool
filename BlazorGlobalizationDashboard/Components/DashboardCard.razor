@@ -1,0 +1,56 @@
+﻿<div class="dashboard-card @(IsHighlight ? "card-highlight" : "")">
+    <div class="card-header">
+        <div class="d-flex align-items-center">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="@Icon me-2"></i>
+            }
+            <h5 class="mb-0">@Title</h5>
+        </div>
+    </div>
+    <div class="card-body">
+        <h2 class="display-6">@Value</h2>
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <p class="card-text">@Description</p>
+        }
+    </div>
+</div>
+
+<style>
+    .dashboard-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .card-highlight {
+        border-left: 5px solid #007bff;
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 1.25rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+</style>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = string.Empty;
+    [Parameter] public bool IsHighlight { get; set; }
+}

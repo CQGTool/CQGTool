@@ -1,0 +1,42 @@
+﻿@* @using System.Globalization
+@using BlazorGlobalizationDashboard.Services
+@inject NavigationManager Navigation
+@inject CultureService CultureService
+
+<div class="culture-selector">
+    <label class="form-label">🌍 Select Language:</label>
+    <select @bind="SelectedCulture" @bind:event="onchange" class="form-select">
+        @foreach (var culture in CultureService.GetSupportedCultures())
+        {
+            <option value="@culture.Name">@culture.NativeName (@culture.Name)</option>
+        }
+    </select>
+    
+    <div class="mt-2">
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Current: @CultureService.GetCurrentCulture().DisplayName
+        </small>
+    </div>
+</div>
+
+@code {
+    private string SelectedCulture { get; set; } = "en-US";
+    
+    protected override void OnInitialized()
+    {
+        SelectedCulture = CultureService.GetCurrentCulture().Name;
+    }
+    
+    private void ChangeCulture()
+    {
+        Navigation.NavigateTo($"?culture={SelectedCulture}", forceLoad: true);
+    }
+
+    // Add handler for when SelectedCulture changes
+    private async Task OnCultureChanged(ChangeEventArgs e)
+    {
+        SelectedCulture = e.Value?.ToString() ?? "en-US";
+        ChangeCulture();
+    }
+} *@

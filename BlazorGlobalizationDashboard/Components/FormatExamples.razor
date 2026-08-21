@@ -1,0 +1,105 @@
+﻿@* @using BlazorGlobalizationDashboard.Services
+@inject CultureService CultureService
+
+<div class="format-examples">
+    <h4><i class="bi bi-card-text me-2"></i>Formatting Examples</h4>
+
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Type</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Number</td>
+                        <td>@CultureService.FormatNumber(1234567.89)</td>
+                    </tr>
+                    <tr>
+                        <td>Currency</td>
+                        <td>@CultureService.FormatCurrency(999.99m)</td>
+                    </tr>
+                    <tr>
+                        <td>Percentage</td>
+                        <td>@CultureService.FormatPercent(0.4567)</td>
+                    </tr>
+                    <tr>
+                        <td>Date (Long)</td>
+                        <td>@CultureService.FormatDate(DateTime.Now)</td>
+                    </tr>
+                    <tr>
+                        <td>Date (Short)</td>
+                        <td>@DateTime.Now.ToString("d", System.Globalization.CultureInfo.CurrentCulture)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-md-6">
+            <div class="culture-details">
+                <h5>Culture Details</h5>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <span class="label">Code:</span>
+                        <span class="value">@System.Globalization.CultureInfo.CurrentCulture.Name</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Display Name:</span>
+                        <span class="value">@System.Globalization.CultureInfo.CurrentCulture.DisplayName</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Currency Symbol:</span>
+                        <span class="value">@System.Globalization.CultureInfo.CurrentCulture.NumberFormat.CurrencySymbol</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Decimal Separator:</span>
+                        <span class="value">'@System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator'</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Date Format:</span>
+                        <span class="value">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Time Format:</span>
+                        <span class="value">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+
+        .detail-item .label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .detail-item .value {
+            color: #212529;
+            font-family: 'Courier New', monospace;
+        }
+</style>
+<h3>FormatExamples</h3>
+
+@code {
+
+}
+ *@

@@ -1,0 +1,40 @@
+﻿@using System.Globalization
+@inject NavigationManager Navigation
+@inject Services.CultureService CultureService
+@rendermode InteractiveServer
+
+<div class="language-selector">
+    <label class="form-label">🌍 Select Language:</label>
+    <select @bind="selectedCulture" class="form-select">
+        @foreach (var culture in CultureService.GetAvailableCultures())
+        {
+            <option value="@culture.Code">@culture.NativeName</option>
+        }
+    </select>
+    <button @onclick="ChangeCulture" class="btn btn-primary mt-2 w-100">
+        Apply Language
+    </button>
+</div>
+
+<style>
+    .language-selector {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+
+@code {
+    private string selectedCulture = "en-US";
+    
+    protected override void OnInitialized()
+    {
+        selectedCulture = CultureService.GetCurrentCulture().Name;
+    }
+    
+    private void ChangeCulture()
+    {
+        Navigation.NavigateTo($"?culture={selectedCulture}", forceLoad: true);
+    }
+}
