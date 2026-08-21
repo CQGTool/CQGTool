@@ -2,12 +2,16 @@ using BlazorGlobalizationDashboard.Components;
 using BlazorGlobalizationDashboard.Services;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
+
 var builder = WebApplication.CreateBuilder(args);
+
 // Add services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
 // Add localization with Resources folder
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
 // Configure supported cultures
 var supportedCultures = new[]
 {
@@ -19,6 +23,7 @@ var supportedCultures = new[]
     new CultureInfo("hi-IN"),
     new CultureInfo("ar-SA")
 };
+
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     options.DefaultRequestCulture = new RequestCulture("en-US");
@@ -26,6 +31,7 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SupportedUICultures = supportedCultures;
     options.RequestCultureProviders.Insert(0, new QueryStringRequestCultureProvider());
 });
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
