@@ -1,0 +1,112 @@
+﻿@page "/"
+@using System.Globalization
+@inject Services.CultureService CultureService
+
+<PageTitle>Globalization Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>🌍 Globalization Dashboard</h1>
+            <p class="lead">Multi-language Blazor Server App</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Language Settings</h5>
+                </div>
+                <div class="card-body">
+                    <LanguageSelector />
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Current Culture Information</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var currentCulture = CultureService.GetCurrentCulture();
+                        var cultureData = CultureService.GetAvailableCultures()
+                        .FirstOrDefault(c => c.Code == currentCulture.Name);
+                    }
+
+                    <h3>@currentCulture.DisplayName</h3>
+                    <p><strong>Code:</strong> @currentCulture.Name</p>
+                    <p><strong>Native Name:</strong> @currentCulture.NativeName</p>
+                    @if (cultureData != null)
+                    {
+                        <p><strong>Currency Symbol:</strong> @cultureData.CurrencySymbol</p>
+                        <p><strong>Date Format:</strong> @cultureData.DateFormat</p>
+                        <p><strong>Direction:</strong> @(cultureData.IsRightToLeft ? "Right-to-Left" : "Left-to-Right")</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <FormatDemo />
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Available Languages</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var culture in CultureService.GetAvailableCultures())
+                        {
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="d-flex align-items-center">
+                                        <div style="width: 30px; height: 30px; background: #007bff;
+                                                 border-radius: 50%; display: flex; align-items: center;
+                                                 justify-content: center; color: white; margin-right: 10px;">
+                                            @culture.Code.Substring(0, 2).ToUpper()
+                                        </div>
+                                        <div>
+                                            <strong>@culture.Name</strong><br />
+                                            <small>@culture.NativeName</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small>Currency: @culture.CurrencySymbol</small><br />
+                                        <small>Date: @culture.DateFormat</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 1200px;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: none;
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+    }
+</style>

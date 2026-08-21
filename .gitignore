@@ -1,0 +1,38 @@
+# Visual Studio
+.vs/
+.vscode/
+
+# Build output
+**/bin/
+**/obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Node
+node_modules/
+
+# Publish output
+publish/
+**/publish/
+
+# Test results
+TestResults/
+
+# Compiled files
+*.dll
+*.pdb
+*.exe
+
+# Development settings
+appsettings.Development.json
+
+# User Secrets
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db

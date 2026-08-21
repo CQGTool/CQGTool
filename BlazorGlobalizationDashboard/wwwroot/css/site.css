@@ -1,0 +1,23 @@
+﻿.culture-selector {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dashboard-card {
+    transition: all 0.3s ease;
+}
+
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+    }
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+.bi {
+    vertical-align: middle;
+}body {
+}
