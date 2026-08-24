@@ -11,26 +11,23 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Validate Environment
+      - name: Check .NET
         shell: powershell
         run: |
-          Write-Host "Checking .NET..."
           dotnet --version
+          dotnet --list-sdks
 
-          Write-Host "Checking IIS..."
+      - name: Validate IIS
+        shell: powershell
+        run: |
           Import-Module WebAdministration
           Get-WebAppPoolState -Name "Newpool"
 
       - name: Restore
-        run: dotnet restore BlazorGlobalizationDashboard.sln
+        run: dotnet restore "BlazorGlobalizationDashboard.slnx"
 
       - name: Build
-        run: dotnet build BlazorGlobalizationDashboard.sln --configuration Release --no-restore
+        run: dotnet build "BlazorGlobalizationDashboard.slnx" --configuration Release --no-restore
 
       - name: Stop App Pool
         shell: powershell
@@ -39,11 +36,18 @@ jobs:
           Stop-WebAppPool -Name "Newpool"
 
       - name: Publish Application
+        shell: powershell
         run: |
-          dotnet publish BlazorGlobalizationDashboard/BlazorGlobalizationDashboard.csproj `
+          dotnet publish ".\BlazorGlobalizationDashboard\BlazorGlobalizationDashboard.csproj" `
             --configuration Release `
-            --output D:\PublishNew `
+            --output "D:\PublishNew" `
             --no-restore
+
+      - name: Check Publish Folder
+        shell: powershell
+        run: |
+          Write-Host "Publish folder:"
+          Get-ChildItem "D:\PublishNew"
 
       - name: Start App Pool
         shell: powershell
