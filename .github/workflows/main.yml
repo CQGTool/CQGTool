@@ -1,35 +1,54 @@
 name: SchoolEye Deploy
+
 on:
   workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: self-hosted
+
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate Environment
+        shell: powershell
+        run: |
+          Write-Host "Checking .NET..."
+          dotnet --version
+
+          Write-Host "Checking IIS..."
+          Import-Module WebAdministration
+          Get-WebAppPoolState -Name "Newpool"
+
       - name: Restore
         run: dotnet restore BlazorGlobalizationDashboard.sln
+
       - name: Build
         run: dotnet build BlazorGlobalizationDashboard.sln --configuration Release --no-restore
 
-      - name: Stop App Pools
+      - name: Stop App Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
           Stop-WebAppPool -Name "Newpool"
-        
 
-      - name: Publish API
+      - name: Publish Application
         run: |
           dotnet publish BlazorGlobalizationDashboard/BlazorGlobalizationDashboard.csproj `
-          -c Release `
-          -o D:\PublishNew
+            --configuration Release `
+            --output D:\PublishNew `
+            --no-restore
 
-    
-
-      - name: Start App Pools
+      - name: Start App Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
           Start-WebAppPool -Name "Newpool"
-       
+
+          Write-Host "Deployment completed successfully."
