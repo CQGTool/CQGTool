@@ -1,58 +1,146 @@
+
 name: SchoolEye Deploy
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 jobs:
-  deploy:
+
+  # ==========================================
+  # 1. VALIDATE ENVIRONMENT
+  # ==========================================
+  validate:
+    name: Validate Environment
     runs-on: self-hosted
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Check .NET
+      - name: Validate .NET and IIS
         shell: powershell
         run: |
+          Write-Host "Checking .NET..."
           dotnet --version
-          dotnet --list-sdks
 
-      - name: Validate IIS
-        shell: powershell
-        run: |
+          Write-Host "Checking IIS..."
           Import-Module WebAdministration
+
           Get-WebAppPoolState -Name "Newpool"
 
+          Write-Host "Environment validation completed."
+
+
+  # ==========================================
+  # 2. BUILD UI AND API
+  # ==========================================
+  build:
+    name: Build UI and API
+    runs-on: self-hosted
+    needs: validate
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
       - name: Restore
-        run: dotnet restore "BlazorGlobalizationDashboard.slnx"
+        run: dotnet restore BlazorGlobalizationDashboard.slnx
 
       - name: Build
-        run: dotnet build "BlazorGlobalizationDashboard.slnx" --configuration Release --no-restore
+        run: dotnet build BlazorGlobalizationDashboard.slnx --configuration Release --no-restore
 
-      - name: Stop App Pool
+
+  # ==========================================
+  # 3. RUN TESTS
+  # ==========================================
+  test:
+    name: Run Tests
+    runs-on: self-hosted
+    needs: build
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Restore
+        run: dotnet restore BlazorGlobalizationDashboard.slnx
+
+      - name: Build for Tests
+        run: dotnet build BlazorGlobalizationDashboard.slnx --configuration Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test BlazorGlobalizationDashboard.slnx --configuration Release --no-build
+
+
+  # ==========================================
+  # 4. PUBLISH AND DEPLOY TO LOCAL IIS
+  # ==========================================
+  deploy:
+    name: Publish and Deploy to Local IIS
+    runs-on: self-hosted
+    needs: test
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Restore
+        run: dotnet restore BlazorGlobalizationDashboard.slnx
+
+      - name: Stop IIS App Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
+
+          Write-Host "Stopping IIS App Pool..."
           Stop-WebAppPool -Name "Newpool"
 
-      - name: Publish Application
+      - name: Clean Publish Folder
         shell: powershell
         run: |
-          dotnet publish ".\BlazorGlobalizationDashboard\BlazorGlobalizationDashboard.csproj" `
+          if (Test-Path "D:\PublishNew") {
+              Remove-Item "D:\PublishNew\*" -Recurse -Force
+          }
+          else {
+              New-Item -ItemType Directory -Path "D:\PublishNew"
+          }
+
+      - name: Publish Application
+        run: |
+          dotnet publish BlazorGlobalizationDashboard/BlazorGlobalizationDashboard.csproj `
             --configuration Release `
             --output "D:\PublishNew" `
             --no-restore
 
-      - name: Check Publish Folder
+      - name: Verify Publish
         shell: powershell
         run: |
-          Write-Host "Publish folder:"
-          Get-ChildItem "D:\PublishNew"
+          Write-Host "Checking published files..."
 
-      - name: Start App Pool
+          if (-not (Test-Path "D:\PublishNew")) {
+              throw "Publish folder does not exist."
+          }
+
+          $files = Get-ChildItem "D:\PublishNew" -Recurse
+
+          if ($files.Count -eq 0) {
+              throw "Publish folder is empty."
+          }
+
+          Write-Host "Published files:"
+          Get-ChildItem "D:\PublishNew" -Recurse
+
+      - name: Start IIS App Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
+
+          Write-Host "Starting IIS App Pool..."
           Start-WebAppPool -Name "Newpool"
 
           Write-Host "Deployment completed successfully."
+
