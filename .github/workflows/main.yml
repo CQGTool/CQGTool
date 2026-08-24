@@ -10,86 +10,130 @@ on:
 
 jobs:
 
-  # ==========================================
+  # ==================================================
   # 1. VALIDATE ENVIRONMENT
-  # ==========================================
+  # ==================================================
   validate:
     name: Validate Environment
     runs-on: self-hosted
 
     steps:
+
       - name: Checkout Source
         uses: actions/checkout@v4
 
       - name: Validate .NET and IIS
         shell: powershell
         run: |
+          Write-Host "========================================"
+          Write-Host "VALIDATING ENVIRONMENT"
+          Write-Host "========================================"
+
+          Write-Host ""
           Write-Host "Checking .NET..."
           dotnet --version
 
+          Write-Host ""
           Write-Host "Checking IIS..."
+
           Import-Module WebAdministration
 
-          Get-WebAppPoolState -Name "Newpool"
+          $poolName = "Newpool"
 
-          Write-Host "Environment validation completed."
+          if (-not (Test-Path "IIS:\AppPools\$poolName")) {
+              throw "IIS App Pool '$poolName' does not exist."
+          }
+
+          $state = (Get-WebAppPoolState -Name $poolName).Value
+
+          Write-Host "App Pool: $poolName"
+          Write-Host "Current State: $state"
+
+          Write-Host ""
+          Write-Host "Environment validation completed successfully."
 
 
-  # ==========================================
+  # ==================================================
   # 2. BUILD UI AND API
-  # ==========================================
+  # ==================================================
   build:
     name: Build UI and API
     runs-on: self-hosted
     needs: validate
 
     steps:
+
       - name: Checkout Source
         uses: actions/checkout@v4
 
       - name: Restore
+        shell: powershell
         run: |
-          dotnet restore BlazorGlobalizationDashboard.slnx
+          dotnet restore "BlazorGlobalizationDashboard.slnx"
 
       - name: Build
+        shell: powershell
         run: |
-          dotnet build BlazorGlobalizationDashboard.slnx `
+          dotnet build `
+            "BlazorGlobalizationDashboard.slnx" `
             --configuration Release `
             --no-restore
 
+          if ($LASTEXITCODE -ne 0) {
+              throw "Build failed."
+          }
 
-  # ==========================================
+          Write-Host "Build completed successfully."
+
+
+  # ==================================================
   # 3. RUN TESTS
-  # ==========================================
+  # ==================================================
   test:
     name: Run Tests
     runs-on: self-hosted
     needs: build
 
     steps:
+
       - name: Checkout Source
         uses: actions/checkout@v4
 
       - name: Restore
+        shell: powershell
         run: |
-          dotnet restore BlazorGlobalizationDashboard.slnx
+          dotnet restore "BlazorGlobalizationDashboard.slnx"
 
       - name: Build for Tests
+        shell: powershell
         run: |
-          dotnet build BlazorGlobalizationDashboard.slnx `
+          dotnet build `
+            "BlazorGlobalizationDashboard.slnx" `
             --configuration Release `
             --no-restore
 
+          if ($LASTEXITCODE -ne 0) {
+              throw "Build for tests failed."
+          }
+
       - name: Run Tests
+        shell: powershell
         run: |
-          dotnet test BlazorGlobalizationDashboard.slnx `
+          dotnet test `
+            "BlazorGlobalizationDashboard.slnx" `
             --configuration Release `
             --no-build
 
+          if ($LASTEXITCODE -ne 0) {
+              throw "Tests failed."
+          }
 
-  # ==========================================
+          Write-Host "All tests passed successfully."
+
+
+  # ==================================================
   # 4. PUBLISH AND DEPLOY TO IIS
-  # ==========================================
+  # ==================================================
   deploy:
     name: Publish and Deploy to Local IIS
     runs-on: self-hosted
@@ -97,38 +141,81 @@ jobs:
 
     steps:
 
-      # ----------------------------------------
+      # -----------------------------------------------
       # Checkout
-      # ----------------------------------------
+      # -----------------------------------------------
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      # ----------------------------------------
-      # Setup .NET 10
-      # ----------------------------------------
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
 
-      # ----------------------------------------
+      # -----------------------------------------------
       # Restore
-      # ----------------------------------------
+      # -----------------------------------------------
       - name: Restore
+        shell: powershell
         run: |
-          dotnet restore BlazorGlobalizationDashboard.slnx
+          dotnet restore "BlazorGlobalizationDashboard.slnx"
 
-      # ----------------------------------------
-      # Stop IIS App Pool
-      # ----------------------------------------
-      - name: Stop IIS App Pool
+
+      # -----------------------------------------------
+      # CHECK IIS APP POOL STATE
+      # -----------------------------------------------
+      - name: Check IIS App Pool
         shell: powershell
         run: |
           Import-Module WebAdministration
 
-          Write-Host "Stopping IIS App Pool: Newpool"
+          $poolName = "Newpool"
 
-          Stop-WebAppPool -Name "Newpool"
+          $state = (Get-WebAppPoolState -Name $poolName).Value
+
+          Write-Host "========================================"
+          Write-Host "IIS APP POOL CHECK"
+          Write-Host "========================================"
+
+          Write-Host "App Pool: $poolName"
+          Write-Host "Current State: $state"
+
+          if ($state -eq "Started") {
+
+              Write-Host "App Pool is RUNNING."
+              Write-Host "It will be stopped before publishing."
+
+              "APP_POOL_WAS_RUNNING=true" |
+                Out-File `
+                -FilePath $env:GITHUB_ENV `
+                -Append
+          }
+          elseif ($state -eq "Stopped") {
+
+              Write-Host "App Pool is ALREADY STOPPED."
+              Write-Host "No Stop command will be executed."
+
+              "APP_POOL_WAS_RUNNING=false" |
+                Out-File `
+                -FilePath $env:GITHUB_ENV `
+                -Append
+          }
+          else {
+
+              throw "Unexpected IIS App Pool state: $state"
+          }
+
+
+      # -----------------------------------------------
+      # STOP IIS ONLY IF IT WAS RUNNING
+      # -----------------------------------------------
+      - name: Stop IIS App Pool
+        if: env.APP_POOL_WAS_RUNNING == 'true'
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+
+          $poolName = "Newpool"
+
+          Write-Host "Stopping IIS App Pool: $poolName"
+
+          Stop-WebAppPool -Name $poolName
 
           Write-Host "Waiting for IIS App Pool to stop..."
 
@@ -136,9 +223,10 @@ jobs:
           $elapsed = 0
 
           do {
+
               Start-Sleep -Seconds 1
 
-              $state = (Get-WebAppPoolState -Name "Newpool").Value
+              $state = (Get-WebAppPoolState -Name $poolName).Value
 
               Write-Host "App Pool State: $state"
 
@@ -153,56 +241,93 @@ jobs:
           Write-Host "IIS App Pool stopped successfully."
 
 
-      # ----------------------------------------
-      # Prepare Publish Folder
-      # ----------------------------------------
+      # -----------------------------------------------
+      # PREPARE PUBLISH FOLDER
+      # -----------------------------------------------
       - name: Prepare Publish Folder
         shell: powershell
         run: |
           $publishPath = "D:\PublishNew"
 
+          Write-Host "========================================"
+          Write-Host "PREPARING PUBLISH FOLDER"
+          Write-Host "========================================"
+
           Write-Host "Publish path: $publishPath"
 
           if (-not (Test-Path $publishPath)) {
 
-              Write-Host "Publish folder does not exist. Creating..."
+              Write-Host "Folder does not exist. Creating..."
 
               New-Item `
                 -ItemType Directory `
                 -Path $publishPath `
-                -Force | Out-Null
+                -Force |
+                Out-Null
           }
 
-          Write-Host "Cleaning publish folder..."
+          Write-Host "Cleaning existing publish files..."
 
-          Get-ChildItem $publishPath -Force |
-            Remove-Item -Recurse -Force -ErrorAction Stop
+          $items = Get-ChildItem `
+            $publishPath `
+            -Force `
+            -ErrorAction SilentlyContinue
 
-          Write-Host "Publish folder cleaned successfully."
+          if ($items) {
+
+              foreach ($item in $items) {
+
+                  Write-Host "Removing: $($item.FullName)"
+
+                  Remove-Item `
+                    $item.FullName `
+                    -Recurse `
+                    -Force `
+                    -ErrorAction Stop
+              }
+          }
+          else {
+
+              Write-Host "Publish folder is already empty."
+          }
+
+          Write-Host "Publish folder ready."
 
 
-      # ----------------------------------------
-      # Publish Application
-      # ----------------------------------------
+      # -----------------------------------------------
+      # PUBLISH APPLICATION
+      # -----------------------------------------------
       - name: Publish Application
         shell: powershell
         run: |
+          Write-Host "========================================"
+          Write-Host "PUBLISHING APPLICATION"
+          Write-Host "========================================"
+
           dotnet publish `
             "BlazorGlobalizationDashboard/BlazorGlobalizationDashboard.csproj" `
             --configuration Release `
             --output "D:\PublishNew" `
             --no-restore
 
+          if ($LASTEXITCODE -ne 0) {
+              throw "dotnet publish failed."
+          }
 
-      # ----------------------------------------
-      # Verify Published Files
-      # ----------------------------------------
+          Write-Host "Application published successfully."
+
+
+      # -----------------------------------------------
+      # VERIFY PUBLISH
+      # -----------------------------------------------
       - name: Verify Published Files
         shell: powershell
         run: |
           $publishPath = "D:\PublishNew"
 
-          Write-Host "Checking published files..."
+          Write-Host "========================================"
+          Write-Host "VERIFYING PUBLISHED FILES"
+          Write-Host "========================================"
 
           if (-not (Test-Path $publishPath)) {
               throw "Publish folder does not exist."
@@ -218,42 +343,76 @@ jobs:
           }
 
           Write-Host ""
-          Write-Host "================================"
-          Write-Host "Published Files"
-          Write-Host "================================"
+          Write-Host "Published files:"
+          Write-Host ""
 
-          $files | ForEach-Object {
+          $files |
+            ForEach-Object {
               Write-Host $_.FullName
-          }
+            }
 
           Write-Host ""
           Write-Host "Total published files: $($files.Count)"
 
+          Write-Host ""
+          Write-Host "Publish verification successful."
 
-      # ----------------------------------------
-      # Start IIS App Pool
-      # ----------------------------------------
+
+      # -----------------------------------------------
+      # START IIS ONLY IF IT WAS RUNNING BEFORE
+      # -----------------------------------------------
       - name: Start IIS App Pool
+        if: env.APP_POOL_WAS_RUNNING == 'true'
         shell: powershell
         run: |
           Import-Module WebAdministration
 
-          Write-Host "Starting IIS App Pool: Newpool"
+          $poolName = "Newpool"
 
-          Start-WebAppPool -Name "Newpool"
+          Write-Host "========================================"
+          Write-Host "STARTING IIS APP POOL"
+          Write-Host "========================================"
 
-          Start-Sleep -Seconds 3
+          $state = (Get-WebAppPoolState -Name $poolName).Value
 
-          $state = (Get-WebAppPoolState -Name "Newpool").Value
+          Write-Host "Current State: $state"
 
-          Write-Host "App Pool State: $state"
+          if ($state -eq "Stopped") {
 
-          if ($state -ne "Started") {
-              throw "IIS App Pool failed to start."
+              Write-Host "Starting App Pool: $poolName"
+
+              Start-WebAppPool -Name $poolName
+
+              Start-Sleep -Seconds 3
+
+              $state = (Get-WebAppPoolState -Name $poolName).Value
+
+              Write-Host "App Pool State: $state"
+
+              if ($state -ne "Started") {
+                  throw "IIS App Pool failed to start."
+              }
+
+              Write-Host "IIS App Pool started successfully."
+          }
+          else {
+
+              Write-Host "App Pool is already started."
           }
 
+
+      # -----------------------------------------------
+      # FINAL STATUS
+      # -----------------------------------------------
+      - name: Deployment Completed
+        shell: powershell
+        run: |
           Write-Host ""
-          Write-Host "================================"
+          Write-Host "========================================"
           Write-Host "DEPLOYMENT COMPLETED SUCCESSFULLY"
-          Write-Host "================================"
+          Write-Host "========================================"
+
+          Write-Host "Application: BlazorGlobalizationDashboard"
+          Write-Host "Publish Path: D:\PublishNew"
+          Write-Host "IIS App Pool: Newpool"
 
