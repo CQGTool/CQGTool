@@ -1,34 +1,35 @@
-name: CI - Build and Test
-
+name: SchoolEye Deploy
 on:
-  pull_request:
-    branches:
-      - main
-
+  workflow_dispatch:
 jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
-
+  deploy:
+    runs-on: self-hosted
     steps:
-      - name: Checkout source code
+      - name: Checkout Source
         uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Find project files
-        run: |
-          echo "Project/Solution files:"
-          find . -name "*.sln" -o -name "*.csproj"
-
-      - name: Restore dependencies
-        run: dotnet restore
-
+      - name: Restore
+        run: dotnet restore BlazorGlobalizationDashboard.sln
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build BlazorGlobalizationDashboard.sln --configuration Release --no-restore
 
-      - name: Run tests
-        run: dotnet test --no-build --configuration Release
+      - name: Stop App Pools
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Stop-WebAppPool -Name "Newpool"
+        
+
+      - name: Publish API
+        run: |
+          dotnet publish BlazorGlobalizationDashboard/BlazorGlobalizationDashboard.csproj `
+          -c Release `
+          -o D:\PublishNew
+
+    
+
+      - name: Start App Pools
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Start-WebAppPool -Name "Newpool"
+       
